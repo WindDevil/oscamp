@@ -9,6 +9,7 @@
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => {
+        // 增加颜色
         $crate::io::__print_impl(format_args!("\x1b[31m{}\x1b[0m", format_args!($($arg)*)));
     }
 }
@@ -18,6 +19,7 @@ macro_rules! print {
 macro_rules! println {
     () => { $crate::print!("\n") };
     ($($arg:tt)*) => {
+        // 增加颜色
         $crate::io::__print_impl(format_args!("\x1b[31m{}\n\x1b[0m", format_args!($($arg)*)));
     }
 }
