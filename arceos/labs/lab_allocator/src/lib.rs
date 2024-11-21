@@ -44,18 +44,24 @@ impl ByteAllocator for LabByteAllocator {
         if new_pos > self.end {
             return AllocResult::Err(AllocError::NoMemory);
         }
-        AllocResult::Ok(NonNull::new( as *mut u8).unwrap())
+        let ptr = self.byte_pos as *mut u8;
+        self.byte_pos = new_pos;
+        AllocResult::Ok(NonNull::new(ptr).unwrap())
     }
     fn dealloc(&mut self, pos: NonNull<u8>, layout: Layout) {
-        unimplemented!();
+        let len = layout.size();
+        let pos = pos.as_ptr() as usize;
+        if pos+len == self.byte_pos {
+            self.byte_pos -= len;
+        }
     }
     fn total_bytes(&self) -> usize {
-        unimplemented!();
+        self.end - self.start
     }
     fn used_bytes(&self) -> usize {
-        unimplemented!();
+        self.byte_pos - self.start
     }
     fn available_bytes(&self) -> usize {
-        unimplemented!();
+        self.end - self.byte_pos
     }
 }
