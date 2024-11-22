@@ -11,6 +11,7 @@ const POOL_SIZE:usize = 96+192+384;
 const MEMORY_START:usize = 0xffffffc08026f000;
 const MEMORY_END:usize = 0xffffffc088000000;
 const NT_PTR:usize = MEMORY_START+POOL_SIZE;
+// 直接通过修改这个值改变停在哪里,这里只是理论上限,可以试试525088,会停在801次
 const MAX_SIZE:usize = MEMORY_END-MEMORY_START-POOL_SIZE-1;
 
 pub struct LabByteAllocator{
