@@ -9,6 +9,8 @@ use core::alloc::Layout;
 use axlog::*;
 
 const POOL_SIZE:usize = 96+192+384;
+const MEMORY_START:usize = 0xffffffc08026f000;
+const MEMORY_END:usize = 0xffffffc088000000;
 
 pub struct LabByteAllocator{
     pool_96: usize,
@@ -33,19 +35,16 @@ impl LabByteAllocator {
 }
 
 impl BaseAllocator for LabByteAllocator {
-    fn init(&mut self, start: usize, size: usize) {
-        self.pool_96 = start;
-        self.pool_192 = start+96;
-        self.pool_384 = start+96+192;
-        self.start = start+POOL_SIZE;
-        self.end = start + size;
+    fn init(&mut self, _start: usize, _size: usize) {
+        self.pool_96 = MEMORY_START;
+        self.pool_192 = MEMORY_START+96;
+        self.pool_384 = MEMORY_START+96+192;
+        self.start = MEMORY_START+POOL_SIZE;
+        self.end = MEMORY_END;
         self.byte_pos = self.start;
     }
     fn add_memory(&mut self, start: usize, size: usize) -> AllocResult {
-        self.start = start;
-        self.end = start + size;
-        self.byte_pos = self.start;
-        AllocResult::Ok(())
+        unimplemented!()
     }
 }
 
