@@ -19,7 +19,6 @@ fn main() {
         let mut items = alloc_pass(i);
         free_pass(&mut items, i as u8);
 
-        println!("appending items to pool");
         pool.append(&mut items);
         assert_eq!(items.len(), 0);
     }
@@ -51,5 +50,4 @@ fn free_pass(items: &mut Vec<Vec<u8>>, delta: u8) {
             assert_eq!(delta, ret[ret.len()-1]);
         }
     }
-    println!("items.len(): {}", items.len());
 }

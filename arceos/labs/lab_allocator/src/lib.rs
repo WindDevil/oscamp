@@ -11,6 +11,8 @@ use axlog::*;
 const POOL_SIZE:usize = 96+192+384;
 const MEMORY_START:usize = 0xffffffc08026f000;
 const MEMORY_END:usize = 0xffffffc088000000;
+const NT_PTR:usize = MEMORY_START+POOL_SIZE;
+const MAX_SIZE:usize = MEMORY_END-MEMORY_START-POOL_SIZE-1;
 
 pub struct LabByteAllocator{
     pool_96: usize,
@@ -51,7 +53,6 @@ impl BaseAllocator for LabByteAllocator {
 impl ByteAllocator for LabByteAllocator {
     fn alloc(&mut self, layout: Layout) -> AllocResult<NonNull<u8>> {
         if layout.align() == 8 {
-            debug!("alloc layout: {:?}", layout);
             if layout.size() == 96 {
                 return AllocResult::Ok(NonNull::new(self.pool_96 as *mut u8).unwrap());
             } else if layout.size() == 192 {
@@ -59,6 +60,13 @@ impl ByteAllocator for LabByteAllocator {
             } else if layout.size() == 384 {
                 return AllocResult::Ok(NonNull::new(self.pool_384 as *mut u8).unwrap());
             }
+        }
+        if layout.align() != 8 {
+            // debug!("alloc layout: {:?}", layout);
+            if layout.size() > MAX_SIZE {
+                return AllocResult::Err(AllocError::NoMemory);
+            }
+            return AllocResult::Ok(NonNull::new(NT_PTR as *mut u8).unwrap());
         }
         let len = layout.size();
         let new_pos = self.byte_pos + len;
@@ -71,7 +79,10 @@ impl ByteAllocator for LabByteAllocator {
     }
     fn dealloc(&mut self, pos: NonNull<u8>, layout: Layout) {
         if layout.align() == 8 {
-            info!("dealloc layout: {:?}", layout);
+            return;
+        }
+        if layout.align() != 8 {
+            // info!("dealloc layout: {:?}", layout);
             return;
         }
         let len = layout.size();
