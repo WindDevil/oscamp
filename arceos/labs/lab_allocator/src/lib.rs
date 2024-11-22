@@ -6,7 +6,6 @@
 use allocator::{AllocError, AllocResult, BaseAllocator, ByteAllocator};
 use core::ptr::NonNull;
 use core::alloc::Layout;
-use axlog::*;
 
 const POOL_SIZE:usize = 96+192+384;
 const MEMORY_START:usize = 0xffffffc08026f000;
