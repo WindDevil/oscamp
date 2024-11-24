@@ -45,7 +45,7 @@ TARGET_DIR ?= $(PWD)/target
 BLK ?= n
 NET ?= n
 GRAPHIC ?= n
-BUS ?= pci
+BUS ?= mmio
 PFLASH ?= y
 PFLASH_IMG ?= pflash.img
 
