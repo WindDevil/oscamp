@@ -1,6 +1,6 @@
 use std::fs::{self, File, FileType};
 use std::io::{self, prelude::*};
-use std::{string::String, vec::Vec};
+use std::{string::String,string::ToString, vec::Vec};
 
 #[cfg(all(not(feature = "axstd"), unix))]
 use std::os::unix::fs::{FileTypeExt, PermissionsExt};
@@ -27,6 +27,8 @@ const CMD_TABLE: &[(&str, CmdHandler)] = &[
     ("pwd", do_pwd),
     ("rm", do_rm),
     ("uname", do_uname),
+    ("rename", do_rename),
+    ("mv",do_mv)
 ];
 
 fn file_type_to_char(ty: FileType) -> char {
@@ -270,6 +272,55 @@ fn do_help(_args: &str) {
 fn do_exit(_args: &str) {
     println!("Bye~");
     std::process::exit(0);
+}
+
+fn do_rename(args: &str) {
+    let (old_name, new_name) = split_whitespace(args);
+    if old_name.is_empty() || new_name.is_empty() {
+        print_err!("rename", "missing operand");
+        return;
+    }
+    if let Err(e) = fs::rename(old_name,new_name) {
+        print_err!("rename", format_args!("cannot rename '{old_name}' to '{new_name}'"), e);
+    }
+}
+
+fn do_mv(args: &str) {
+    let (src, dst) = split_whitespace(args);
+    // Check if src and dst are empty
+    if src.is_empty() || dst.is_empty() {
+        print_err!("mv", "missing operand");
+        return;
+    }
+    // Check if dst is a directory
+    let dst_matadata = fs::metadata(dst);
+    if dst_matadata.is_err() {
+        print_err!("mv", format_args!("'{dst}' does not exist"));
+        return;
+    }
+    let dst_matadata = dst_matadata.unwrap();
+    if !dst_matadata.is_dir() {
+        print_err!("mv", format_args!("'{dst}' is not a directory"));
+        return;
+    }
+    // Check if src is a file
+    let src_matadata = fs::metadata(src);
+    if src_matadata.is_err() {
+        print_err!("mv", format_args!("'{src}' does not exist"));
+        return;
+    }
+    let src_matadata = src_matadata.unwrap();
+    if !src_matadata.is_file() {
+        print_err!("mv", format_args!("'{src}' is not a file"));
+        return;
+    }
+    // Move src to dst
+    let old_name = src;
+    let new_name = dst.to_string() + "/" + src.split('/').last().unwrap();
+    let new_name = new_name.as_str();
+    if let Err(e) = fs::rename(old_name,new_name) {
+        print_err!("mv", format_args!("cannot move '{src}' to '{dst}'"), e);
+    }
 }
 
 pub fn run_cmd(line: &[u8]) {

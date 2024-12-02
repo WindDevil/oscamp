@@ -191,9 +191,21 @@ impl VfsNodeOps for DirWrapper<'static> {
             "rename at fatfs, src_path: {}, dst_path: {}",
             src_path, dst_path
         );
-
+        // 把dst_path的目录和文件名分开
+        let (dst_dir_str, dst_path) = match dst_path.rfind('/') {
+            Some(idx) => (&dst_path[..idx], &dst_path[idx + 1..]),
+            None => ("", dst_path),
+        };
+        // 把dst_dir_str的"."去掉
+        let dst_dir_str = dst_dir_str.trim_matches('.');
+        debug!("dst_dir: {}, dst_path: {}", dst_dir_str, dst_path);
+        let dst_dir = if dst_dir_str.is_empty() {
+            &self.0
+        } else {
+            &self.0.open_dir(dst_dir_str).map_err(as_vfs_err)?
+        };
         self.0
-            .rename(src_path, &self.0, dst_path)
+            .rename(src_path, dst_dir, dst_path)
             .map_err(as_vfs_err)
     }
 }
