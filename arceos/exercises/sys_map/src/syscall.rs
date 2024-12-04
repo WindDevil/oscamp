@@ -9,6 +9,10 @@ use axtask::TaskExtRef;
 use axhal::paging::MappingFlags;
 use arceos_posix_api as api;
 
+use axhal::mem::PAGE_SIZE_4K;
+use axhal::mem::phys_to_virt;
+use memory_addr::VirtAddrRange;
+
 const SYS_IOCTL: usize = 29;
 const SYS_OPENAT: usize = 56;
 const SYS_CLOSE: usize = 57;
@@ -140,7 +144,45 @@ fn sys_mmap(
     fd: i32,
     _offset: isize,
 ) -> isize {
-    unimplemented!("no sys_mmap!");
+    let mut buf = [0u8;64];
+    unsafe {
+        let buf_ptr = &mut buf as *mut _ as *mut c_void;
+        sys_read(fd, buf_ptr, length+_offset as usize);
+    }
+    let mut buf = &buf[_offset as usize..];
+
+    let binding = current();
+    let mut uspace = &mut binding.task_ext().aspace.lock();
+
+    let free_va = if addr.is_null() {
+        uspace.find_free_area(
+            (addr as usize).into(), 
+            length, 
+            VirtAddrRange::new(
+                uspace.base(),
+                uspace.end()))
+            .unwrap_or_else(|| panic!("No free area for mmap"))
+    }else{
+        (addr as usize).into()
+    };
+    uspace.map_alloc(
+        free_va, 
+        PAGE_SIZE_4K, 
+        MappingFlags::READ|MappingFlags::WRITE|MappingFlags::EXECUTE|MappingFlags::USER, 
+        true)
+        .unwrap();
+    let (paddr, _, _) = uspace
+        .page_table()
+        .query(free_va)
+        .unwrap_or_else(|_| panic!("Mapping failed for segment"));
+    unsafe {
+        core::ptr::copy_nonoverlapping(
+            buf.as_ptr(),
+            phys_to_virt(paddr).as_mut_ptr(),
+            PAGE_SIZE_4K,
+        );
+    }
+    free_va.as_usize() as isize
 }
 
 fn sys_openat(dfd: c_int, fname: *const c_char, flags: c_int, mode: api::ctypes::mode_t) -> isize {
