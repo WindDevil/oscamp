@@ -11,6 +11,7 @@ use arceos_posix_api as api;
 
 use axhal::mem::PAGE_SIZE_4K;
 use axhal::mem::phys_to_virt;
+use bitflags::Flag;
 use memory_addr::VirtAddrRange;
 
 const SYS_IOCTL: usize = 29;
@@ -144,12 +145,13 @@ fn sys_mmap(
     fd: i32,
     _offset: isize,
 ) -> isize {
-    let mut buf = [0u8;64];
+    const MAX_MMAP_SIZE: usize = 64;
+    let mut buf: [u8; 64] = [0u8;MAX_MMAP_SIZE];
     unsafe {
         let buf_ptr = &mut buf as *mut _ as *mut c_void;
         sys_read(fd, buf_ptr, length+_offset as usize);
     }
-    let mut buf = &buf[_offset as usize..];
+    let mut buf = &buf[_offset as usize..length+_offset as usize];
 
     let binding = current();
     let mut uspace = &mut binding.task_ext().aspace.lock();
@@ -165,10 +167,15 @@ fn sys_mmap(
     }else{
         (addr as usize).into()
     };
+
+    // 把prot转换成MappingFlags
+    let mut flags = MappingFlags::from(MmapProt::from_bits_truncate(prot));
+    flags.set(MappingFlags::USER, true);
+
     uspace.map_alloc(
         free_va, 
         PAGE_SIZE_4K, 
-        MappingFlags::READ|MappingFlags::WRITE|MappingFlags::EXECUTE|MappingFlags::USER, 
+        flags, 
         true)
         .unwrap();
     let (paddr, _, _) = uspace
