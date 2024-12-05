@@ -29,6 +29,8 @@ use crate::regs::GprIndex::{A0, A1};
 
 const VM_ENTRY: usize = 0x8020_0000;
 
+use axstd::println;
+
 #[cfg_attr(feature = "axstd", no_mangle)]
 fn main() {
     ax_println!("Hypervisor ...");
@@ -71,7 +73,6 @@ fn run_guest(ctx: &mut VmCpuRegisters) -> bool {
     unsafe {
         _run_guest(ctx);
     }
-
     vmexit_handler(ctx)
 }
 

@@ -35,7 +35,7 @@ fn handle_page_fault(tf: &TrapFrame, mut access_flags: MappingFlags, is_user: bo
 
 #[no_mangle]
 fn riscv_trap_handler(tf: &mut TrapFrame, from_user: bool) {
-    let scause = scause::read();
+    let scause: scause::Scause = scause::read();
     match scause.cause() {
         #[cfg(feature = "uspace")]
         Trap::Exception(E::UserEnvCall) => {
@@ -50,6 +50,10 @@ fn riscv_trap_handler(tf: &mut TrapFrame, from_user: bool) {
         Trap::Exception(E::Breakpoint) => handle_breakpoint(&mut tf.sepc),
         Trap::Interrupt(_) => {
             handle_trap!(IRQ, scause.bits());
+        }
+        Trap::Exception(E::IllegalInstruction) => {
+            tf.sepc += 4;
+            info!("Illegal Instruction");
         }
         _ => {
             panic!(
